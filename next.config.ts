@@ -11,7 +11,7 @@ const nextConfig: NextConfig = {
 
   // Если деплоите на https://username.github.io/REPO-NAME/
   // раскомментируйте и укажите имя репозитория:
-  // basePath: "/REPO-NAME",
+  basePath: "/landing-page-example",
 
   typescript: {
     ignoreBuildErrors: true,

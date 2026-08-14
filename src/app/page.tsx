@@ -379,7 +379,7 @@ function HeroSection() {
                 style={{ filter: "blur(30px)" }}
               />
               <Image
-                src="/hero-dell.png"
+                src="hero-dell.png"
                 alt="Ноутбук Dell XPS — воплощение инноваций"
                 width={700}
                 height={400}
