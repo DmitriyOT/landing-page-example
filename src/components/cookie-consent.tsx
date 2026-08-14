@@ -7,7 +7,7 @@ import { useCookieConsent, type ConsentState } from "@/hooks/use-cookie-consent"
 import { Button } from "@/components/ui/button";
 
 // Analytics IDs — replace with your actual IDs
-const GTM_ID = "GTM-XXXXXXX";
+const GTM_ID = "GTM-PWNQ94PB";
 const YM_ID = "111610907";
 
 const COOKIE_CATEGORIES = [
