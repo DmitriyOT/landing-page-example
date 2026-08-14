@@ -362,12 +362,21 @@ function HeroSection() {
             custom={1}
           >
             <div className="relative w-full max-w-lg lg:max-w-none">
+              {/* Primary ambient glow — wide soft light spill */}
               <motion.div
-                className="absolute -inset-6 bg-gradient-to-br from-[#0076CE]/30 via-[#00B4D8]/20 to-transparent rounded-3xl"
+                className="absolute -inset-16 bg-[#0076CE]/20 rounded-full"
+                initial={{ opacity: 0, scale: 0.6 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 2.5, delay: 0.3, ease: "easeOut" }}
+                style={{ filter: "blur(80px)" }}
+              />
+              {/* Secondary glow — tight cyan accent around the screen */}
+              <motion.div
+                className="absolute -inset-4 bg-gradient-to-br from-[#00B4D8]/40 via-[#0076CE]/25 to-transparent rounded-3xl"
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 2, delay: 0.5, ease: "easeOut" }}
-                style={{ filter: "blur(40px)" }}
+                transition={{ duration: 2, delay: 0.6, ease: "easeOut" }}
+                style={{ filter: "blur(30px)" }}
               />
               <Image
                 src="/hero-dell.png"
@@ -375,7 +384,7 @@ function HeroSection() {
                 width={700}
                 height={400}
                 priority
-                className="relative rounded-2xl shadow-2xl shadow-blue-900/40 w-full h-auto"
+                className="relative rounded-2xl shadow-2xl shadow-cyan-500/15 w-full h-auto"
                 sizes="(max-width: 768px) 100vw, 50vw"
               />
             </div>
@@ -830,13 +839,23 @@ function Footer() {
             © {new Date().getFullYear()} Dell Technologies. Все права защищены. Данный сайт является
             информационным и не является официальным ресурсом Dell Inc.
           </p>
-          <div className="flex gap-6 text-xs text-gray-600">
+          <div className="flex gap-6 text-xs text-gray-600 items-center">
             <a href={`${DELL_LINK}/en-us/privacy`} target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">
               Конфиденциальность
             </a>
             <a href={`${DELL_LINK}/en-us/legal`} target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">
               Условия
             </a>
+            <button
+              type="button"
+              onClick={() => {
+                // Dispatch custom event to open cookie settings
+                window.dispatchEvent(new CustomEvent("open-cookie-settings"));
+              }}
+              className="hover:text-white transition-colors cursor-pointer"
+            >
+              Настройки куки
+            </button>
           </div>
         </div>
       </div>

@@ -1,0 +1,882 @@
+     1→"use client";
+     2→
+     3→import { useState, useCallback, useRef, useEffect } from "react";
+     4→import Image from "next/image";
+     5→import {
+     6→  Monitor,
+     7→  Server,
+     8→  Shield,
+     9→  Leaf,
+    10→  Headphones,
+    11→  Cpu,
+    12→  ChevronRight,
+    13→  Menu,
+    14→  X,
+    15→  Laptop,
+    16→  Building2,
+    17→  ArrowRight,
+    18→  Star,
+    19→  Zap,
+    20→  Globe,
+    21→  Wrench,
+    22→} from "lucide-react";
+    23→import { motion, useInView, useMotionValue, useTransform, animate } from "framer-motion";
+    24→import { trackCTAClick, type CTAEvent } from "@/lib/analytics";
+    25→
+    26→const DELL_LINK = "https://www.dell.com/ru-ru";
+    27→
+    28→/* ─── ANIMATION HELPERS ─── */
+    29→const fadeUp = {
+    30→  hidden: { opacity: 0, y: 40 },
+    31→  visible: (i: number) => ({
+    32→    opacity: 1,
+    33→    y: 0,
+    34→    transition: { duration: 0.7, delay: i * 0.12, ease: [0.22, 1, 0.36, 1] },
+    35→  }),
+    36→};
+    37→
+    38→const scaleIn = {
+    39→  hidden: { opacity: 0, scale: 0.85 },
+    40→  visible: (i: number) => ({
+    41→    opacity: 1,
+    42→    scale: 1,
+    43→    transition: { duration: 0.6, delay: i * 0.1, ease: [0.22, 1, 0.36, 1] },
+    44→  }),
+    45→};
+    46→
+    47→function AnimatedSection({ children, className = "" }: { children: React.ReactNode; className?: string }) {
+    48→  const ref = useRef(null);
+    49→  const isInView = useInView(ref, { once: true, margin: "-80px" });
+    50→  return (
+    51→    <motion.div
+    52→      ref={ref}
+    53→      initial="hidden"
+    54→      animate={isInView ? "visible" : "hidden"}
+    55→      className={className}
+    56→    >
+    57→      {children}
+    58→    </motion.div>
+    59→  );
+    60→}
+    61→
+    62→function AnimatedCounter({ target, suffix = "" }: { target: number; suffix?: string }) {
+    63→  const ref = useRef(null);
+    64→  const isInView = useInView(ref, { once: true });
+    65→  const count = useMotionValue(0);
+    66→  const rounded = useTransform(count, (v) => {
+    67→    if (target >= 1000) return `${Math.round(v / 1000)}K+`;
+    68→    if (suffix === "+") return `${Math.round(v)}+`;
+    69→    if (suffix === "B") return `$${(v / 1).toFixed(0)}B`;
+    70→    return `${Math.round(v)}`;
+    71→  });
+    72→
+    73→  useEffect(() => {
+    74→    if (!isInView) return;
+    75→    const controls = animate(count, target, {
+    76→      duration: 2.2,
+    77→      ease: [0.22, 1, 0.36, 1],
+    78→    });
+    79→    return () => controls.stop();
+    80→  }, [isInView, target, count]);
+    81→
+    82→  return <motion.span ref={ref}>{rounded}</motion.span>;
+    83→}
+    84→
+    85→/* ─── CTA BUTTON ─── */
+    86→function CTAButton({
+    87→  href,
+    88→  children,
+    89→  variant = "primary",
+    90→  location,
+    91→  buttonName,
+    92→  className = "",
+    93→}: {
+    94→  href: string;
+    95→  children: React.ReactNode;
+    96→  variant?: "primary" | "secondary" | "outline";
+    97→  location: string;
+    98→  buttonName: string;
+    99→  className?: string;
+   100→}) {
+   101→  const handleClick = useCallback(() => {
+   102→    trackCTAClick({
+   103→      buttonName,
+   104→      buttonLocation: location,
+   105→      destinationUrl: href,
+   106→    });
+   107→  }, [buttonName, location, href]);
+   108→
+   109→  const base =
+   110→    "inline-flex items-center gap-2 font-semibold transition-all duration-300 rounded-xl text-sm sm:text-base cursor-pointer";
+   111→
+   112→  const v = {
+   113→    primary: `${base} px-7 py-3.5 bg-gradient-to-r from-[#0076CE] to-[#005BA1] text-white shadow-xl shadow-blue-600/25 hover:shadow-blue-600/50 hover:-translate-y-1 hover:scale-[1.02] active:scale-[0.98]`,
+   114→    secondary: `${base} px-7 py-3.5 bg-white text-[#0076CE] hover:bg-blue-50 border border-[#0076CE]/20 shadow-lg hover:shadow-xl hover:-translate-y-1`,
+   115→    outline: `${base} px-7 py-3.5 bg-transparent text-white border-2 border-white/30 hover:border-white/70 hover:bg-white/10 hover:-translate-y-0.5`,
+   116→  };
+   117→
+   118→  return (
+   119→    <a
+   120→      href={href}
+   121→      target="_blank"
+   122→      rel="noopener noreferrer"
+   123→      onClick={handleClick}
+   124→      className={`${v[variant]} ${className}`}
+   125→    >
+   126→      {children}
+   127→    </a>
+   128→  );
+   129→}
+   130→
+   131→/* ─── DELL LOGO ─── */
+   132→function DellLogo({ className = "" }: { className?: string }) {
+   133→  return (
+   134→    <svg viewBox="0 0 200 40" className={className} aria-label="Dell Technologies" role="img">
+   135→      <text x="0" y="34" fontFamily="Arial, Helvetica, sans-serif" fontWeight="700" fontSize="40" fill="currentColor">
+   136→        DELL
+   137→      </text>
+   138→    </svg>
+   139→  );
+   140→}
+   141→
+   142→/* ─────────── NAVIGATION ─────────── */
+   143→function Navigation() {
+   144→  const [open, setOpen] = useState(false);
+   145→  const navLinks = [
+   146→    { label: "Ноутбуки", href: `${DELL_LINK}/shop/np/laptops` },
+   147→    { label: "Решения", href: `${DELL_LINK}/solutions` },
+   148→    { label: "Сервис", href: `${DELL_LINK}/support/home` },
+   149→    { label: "Для бизнеса", href: `${DELL_LINK}/business` },
+   150→  ];
+   151→
+   152→  return (
+   153→    <header className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-xl border-b border-white/20">
+   154→      <motion.nav
+   155→        initial={{ y: -80, opacity: 0 }}
+   156→        animate={{ y: 0, opacity: 1 }}
+   157→        transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+   158→        className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between"
+   159→      >
+   160→        <a
+   161→          href={DELL_LINK}
+   162→          target="_blank"
+   163→          rel="noopener noreferrer"
+   164→          className="text-[#0076CE] hover:opacity-80 transition-opacity"
+   165→          aria-label="Dell Technologies"
+   166→        >
+   167→          <DellLogo className="h-8 w-auto" />
+   168→        </a>
+   169→
+   170→        <div className="hidden md:flex items-center gap-8">
+   171→          {navLinks.map((link) => (
+   172→            <a
+   173→              key={link.label}
+   174→              href={link.href}
+   175→              target="_blank"
+   176→              rel="noopener noreferrer"
+   177→              className="text-sm font-medium text-gray-700 hover:text-[#0076CE] transition-colors"
+   178→            >
+   179→              {link.label}
+   180→            </a>
+   181→          ))}
+   182→          <CTAButton
+   183→            href={`${DELL_LINK}/shop`}
+   184→            location="navigation"
+   185→            buttonName="buy_now_nav"
+   186→            variant="primary"
+   187→            className="text-sm"
+   188→          >
+   189→            Купить
+   190→          </CTAButton>
+   191→        </div>
+   192→
+   193→        <button
+   194→          onClick={() => setOpen(!open)}
+   195→          className="md:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors"
+   196→          aria-label={open ? "Закрыть меню" : "Открыть меню"}
+   197→        >
+   198→          {open ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+   199→        </button>
+   200→      </motion.nav>
+   201→
+   202→      {open && (
+   203→        <motion.div
+   204→          initial={{ height: 0, opacity: 0 }}
+   205→          animate={{ height: "auto", opacity: 1 }}
+   206→          exit={{ height: 0, opacity: 0 }}
+   207→          transition={{ duration: 0.3 }}
+   208→          className="md:hidden bg-white border-t border-gray-100 shadow-xl overflow-hidden"
+   209→        >
+   210→          <div className="px-4 py-4 space-y-3">
+   211→            {navLinks.map((link) => (
+   212→              <a
+   213→                key={link.label}
+   214→                href={link.href}
+   215→                target="_blank"
+   216→                rel="noopener noreferrer"
+   217→                onClick={() => setOpen(false)}
+   218→                className="block text-base font-medium text-gray-700 hover:text-[#0076CE] py-2 transition-colors"
+   219→              >
+   220→                {link.label}
+   221→              </a>
+   222→            ))}
+   223→            <CTAButton
+   224→              href={`${DELL_LINK}/shop`}
+   225→              location="navigation_mobile"
+   226→              buttonName="buy_now_nav_mobile"
+   227→              variant="primary"
+   228→              className="w-full justify-center mt-2"
+   229→            >
+   230→              Купить
+   231→            </CTAButton>
+   232→          </div>
+   233→        </motion.div>
+   234→      )}
+   235→    </header>
+   236→  );
+   237→}
+   238→
+   239→/* ─────────── HERO ─────────── */
+   240→function HeroSection() {
+   241→  return (
+   242→    <section className="relative pt-16 overflow-hidden min-h-screen flex items-center">
+   243→      {/* Animated background grid */}
+   244→      <div className="absolute inset-0 bg-gradient-to-br from-[#050d1a] via-[#0a1e38] to-[#071422]">
+   245→        <motion.div
+   246→          className="absolute inset-0 opacity-[0.07]"
+   247→          style={{
+   248→            backgroundImage:
+   249→              "linear-gradient(rgba(0,118,206,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(0,118,206,0.5) 1px, transparent 1px)",
+   250→            backgroundSize: "80px 80px",
+   251→          }}
+   252→          initial={{ opacity: 0 }}
+   253→          animate={{ opacity: 0.07 }}
+   254→          transition={{ duration: 2 }}
+   255→        />
+   256→      </div>
+   257→
+   258→      {/* Animated orbs */}
+   259→      <motion.div
+   260→        className="absolute top-1/4 left-1/4 w-[600px] h-[600px] bg-[#0076CE]/15 rounded-full"
+   261→        initial={{ scale: 0.5, opacity: 0 }}
+   262→        animate={{ scale: 1, opacity: 1 }}
+   263→        transition={{ duration: 2.5, ease: "easeOut" }}
+   264→        style={{ filter: "blur(120px)" }}
+   265→      />
+   266→      <motion.div
+   267→        className="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] bg-[#00B4D8]/10 rounded-full"
+   268→        initial={{ scale: 0.5, opacity: 0 }}
+   269→        animate={{ scale: 1, opacity: 1 }}
+   270→        transition={{ duration: 2.5, delay: 0.4, ease: "easeOut" }}
+   271→        style={{ filter: "blur(100px)" }}
+   272→      />
+   273→      {/* Moving accent line */}
+   274→      <motion.div
+   275→        className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#0076CE]/50 to-transparent"
+   276→        initial={{ scaleX: 0 }}
+   277→        animate={{ scaleX: 1 }}
+   278→        transition={{ duration: 1.5, delay: 0.8 }}
+   279→      />
+   280→
+   281→      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 sm:py-24 lg:py-32">
+   282→        <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
+   283→          {/* Text */}
+   284→          <div className="text-center lg:text-left">
+   285→            <motion.div
+   286→              variants={fadeUp}
+   287→              custom={0}
+   288→              className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#0076CE]/15 border border-[#0076CE]/25 text-[#4da8e8] text-sm font-medium mb-8 backdrop-blur-sm"
+   289→            >
+   290→              <Zap className="w-4 h-4" />
+   291→              Эра интеллектуальных технологий
+   292→            </motion.div>
+   293→
+   294→            <motion.h1
+   295→              variants={fadeUp}
+   296→              custom={1}
+   297→              className="text-4xl sm:text-5xl lg:text-[3.5rem] xl:text-6xl font-extrabold text-white leading-[1.1] tracking-tight"
+   298→            >
+   299→              Мы не просто создаём{" "}
+   300→              <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#0076CE] via-[#00A3E0] to-[#00B4D8]">
+   301→                технологии
+   302→              </span>
+   303→              .<br className="hidden sm:block" />
+   304→              Мы формируем{" "}
+   305→              <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#00B4D8] to-[#0076CE]">
+   306→                будущее
+   307→              </span>
+   308→              .
+   309→            </motion.h1>
+   310→
+   311→            <motion.p
+   312→              variants={fadeUp}
+   313→              custom={2}
+   314→              className="mt-7 text-lg sm:text-xl text-gray-400 max-w-xl mx-auto lg:mx-0 leading-relaxed"
+   315→            >
+   316→              Ноутбуки XPS для тех, кто не идёт на компромиссы. Рабочие станции Precision для
+   317→              невообразимых задач. Серверы PowerEdge, на которых держится мир.
+   318→            </motion.p>
+   319→
+   320→            <motion.div variants={fadeUp} custom={3} className="flex flex-col sm:flex-row gap-4 mt-10 justify-center lg:justify-start">
+   321→              <CTAButton
+   322→                href={`${DELL_LINK}/shop/np/laptops`}
+   323→                location="hero"
+   324→                buttonName="catalog_hero"
+   325→                variant="primary"
+   326→                className="text-base px-9 py-4"
+   327→              >
+   328→                Открыть каталог
+   329→                <ArrowRight className="w-5 h-5" />
+   330→              </CTAButton>
+   331→              <CTAButton
+   332→                href={`${DELL_LINK}/business`}
+   333→                location="hero"
+   334→                buttonName="business_hero"
+   335→                variant="outline"
+   336→                className="text-base px-9 py-4"
+   337→              >
+   338→                Решения для бизнеса
+   339→              </CTAButton>
+   340→            </motion.div>
+   341→
+   342→            <motion.div variants={fadeUp} custom={4} className="flex flex-wrap gap-6 mt-12 justify-center lg:justify-start text-sm text-gray-500">
+   343→              <div className="flex items-center gap-2">
+   344→                <Shield className="w-4 h-4 text-[#0076CE]" />
+   345→                Гарантия до 5 лет
+   346→              </div>
+   347→              <div className="flex items-center gap-2">
+   348→                <Star className="w-4 h-4 text-[#0076CE]" />
+   349→                4.8 / 5.0 рейтинг
+   350→              </div>
+   351→              <div className="flex items-center gap-2">
+   352→                <Headphones className="w-4 h-4 text-[#0076CE]" />
+   353→                24/7 поддержка
+   354→              </div>
+   355→            </motion.div>
+   356→          </div>
+   357→
+   358→          {/* Hero image */}
+   359→          <motion.div
+   360→            className="relative flex justify-center lg:justify-end"
+   361→            variants={scaleIn}
+   362→            custom={1}
+   363→          >
+   364→            <div className="relative w-full max-w-lg lg:max-w-none">
+   365→              {/* Primary ambient glow — wide soft light spill */}
+   366→              <motion.div
+   367→                className="absolute -inset-16 bg-[#0076CE]/20 rounded-full"
+   368→                initial={{ opacity: 0, scale: 0.6 }}
+   369→                animate={{ opacity: 1, scale: 1 }}
+   370→                transition={{ duration: 2.5, delay: 0.3, ease: "easeOut" }}
+   371→                style={{ filter: "blur(80px)" }}
+   372→              />
+   373→              {/* Secondary glow — tight cyan accent around the screen */}
+   374→              <motion.div
+   375→                className="absolute -inset-4 bg-gradient-to-br from-[#00B4D8]/40 via-[#0076CE]/25 to-transparent rounded-3xl"
+   376→                initial={{ opacity: 0, scale: 0.8 }}
+   377→                animate={{ opacity: 1, scale: 1 }}
+   378→                transition={{ duration: 2, delay: 0.6, ease: "easeOut" }}
+   379→                style={{ filter: "blur(30px)" }}
+   380→              />
+   381→              <Image
+   382→                src="/hero-dell.png"
+   383→                alt="Ноутбук Dell XPS — воплощение инноваций"
+   384→                width={700}
+   385→                height={400}
+   386→                priority
+   387→                className="relative rounded-2xl shadow-2xl shadow-cyan-500/15 w-full h-auto"
+   388→                sizes="(max-width: 768px) 100vw, 50vw"
+   389→              />
+   390→            </div>
+   391→          </motion.div>
+   392→        </div>
+   393→      </div>
+   394→
+   395→      {/* Scroll indicator */}
+   396→      <motion.div
+   397→        className="absolute bottom-8 left-1/2 -translate-x-1/2"
+   398→        initial={{ opacity: 0, y: -10 }}
+   399→        animate={{ opacity: 1, y: 0 }}
+   400→        transition={{ delay: 2, duration: 0.8 }}
+   401→      >
+   402→        <motion.div
+   403→          animate={{ y: [0, 8, 0] }}
+   404→          transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+   405→          className="w-6 h-10 rounded-full border-2 border-white/20 flex items-start justify-center p-1.5"
+   406→        >
+   407→          <div className="w-1.5 h-1.5 rounded-full bg-white/50" />
+   408→        </motion.div>
+   409→      </motion.div>
+   410→    </section>
+   411→  );
+   412→}
+   413→
+   414→/* ─────────── PRODUCT CATEGORIES ─────────── */
+   415→const products = [
+   416→  {
+   417→    icon: Laptop,
+   418→    title: "XPS Series",
+   419→    subtitle: "Премиальные ноутбуки",
+   420→    description:
+   421→      "OLED-дисплей InfinityEdge, Intel Core Ultra, тоньше карандаша — для тех, кто видит мир шире.",
+   422→    href: `${DELL_LINK}/shop/np/xps-laptops`,
+   423→    badge: "Флагман",
+   424→    gradient: "from-blue-500 to-cyan-400",
+   425→  },
+   426→  {
+   427→    icon: Wrench,
+   428→    title: "Precision",
+   429→    subtitle: "Рабочие станции",
+   430→    description:
+   431→      "До 128 ГБ памяти, NVIDIA RTX Ada Generation, сертификация ISV. Инструмент для невозможных задач.",
+   432→    href: `${DELL_LINK}/en-us/shop/workstations/precision-mobile-workstations`,
+   433→    badge: "Pro",
+   434→    gradient: "from-slate-600 to-slate-400",
+   435→  },
+   436→  {
+   437→    icon: Building2,
+   438→    title: "Latitude",
+   439→    subtitle: "Бизнес-ноутбуки",
+   440→    description:
+   441→      "22 часа без подзарядки, TPM 2.0, удалённое управление. Броня для корпоративных данных.",
+   442→    href: `${DELL_LINK}/shop/np/latitude-laptops`,
+   443→    badge: "Enterprise",
+   444→    gradient: "from-emerald-500 to-teal-400",
+   445→  },
+   446→  {
+   447→    icon: Server,
+   448→    title: "PowerEdge",
+   449→    subtitle: "Серверы нового поколения",
+   450→    description:
+   451→      "AI-ускорители, масштабируемость до тысячи узлов. Инфраструктура, на которой держится прогресс.",
+   452→    href: `${DELL_LINK}/en-us/shop/server-networking/poweredge`,
+   453→    badge: "Data Center",
+   454→    gradient: "from-orange-500 to-amber-400",
+   455→  },
+   456→];
+   457→
+   458→function ProductsSection() {
+   459→  const ref = useRef(null);
+   460→  const isInView = useInView(ref, { once: true, margin: "-60px" });
+   461→
+   462→  return (
+   463→    <section className="py-24 sm:py-32 bg-gradient-to-b from-white to-gray-50" aria-labelledby="products-heading">
+   464→      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+   465→        <motion.div
+   466→          ref={ref}
+   467→          initial="hidden"
+   468→          animate={isInView ? "visible" : "hidden"}
+   469→          className="text-center mb-16"
+   470→        >
+   471→          <motion.p variants={fadeUp} custom={0} className="text-sm font-semibold text-[#0076CE] uppercase tracking-widest mb-3">
+   472→            Линейка продуктов
+   473→          </motion.p>
+   474→          <motion.h2
+   475→            id="products-heading"
+   476→            variants={fadeUp}
+   477→            custom={1}
+   478→            className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-gray-900 tracking-tight"
+   479→          >
+   480→            Технологии, достойные ваших амбиций
+   481→          </motion.h2>
+   482→          <motion.p variants={fadeUp} custom={2} className="mt-5 text-lg text-gray-500 max-w-2xl mx-auto leading-relaxed">
+   483→            От ультратонких ноутбуков до серверных ферм — Dell создаёт инструменты, которые
+   484→            превращают смелые идеи в реальность.
+   485→          </motion.p>
+   486→        </motion.div>
+   487→
+   488→        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+   489→          {products.map((product, i) => {
+   490→            const Icon = product.icon;
+   491→            return (
+   492→              <AnimatedSection key={product.title}>
+   493→                <motion.a
+   494→                  href={product.href}
+   495→                  target="_blank"
+   496→                  rel="noopener noreferrer"
+   497→                  onClick={() =>
+   498→                    trackCTAClick({
+   499→                      buttonName: `product_${product.title.toLowerCase()}`,
+   500→                      buttonLocation: "products_section",
+   501→                      destinationUrl: product.href,
+   502→                    })
+   503→                  }
+   504→                  variants={fadeUp}
+   505→                  custom={i}
+   506→                  className="group relative bg-white rounded-2xl p-7 shadow-sm hover:shadow-2xl border border-gray-100 hover:border-gray-200 transition-all duration-500 hover:-translate-y-2 cursor-pointer block"
+   507→                >
+   508→                  <span
+   509→                    className={`inline-block px-3 py-1 rounded-full text-xs font-bold text-white bg-gradient-to-r ${product.gradient} mb-5 shadow-lg`}
+   510→                  >
+   511→                    {product.badge}
+   512→                  </span>
+   513→
+   514→                  <motion.div
+   515→                    className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${product.gradient} flex items-center justify-center mb-5 group-hover:scale-110 group-hover:rotate-3 transition-all duration-500 shadow-lg`}
+   516→                  >
+   517→                    <Icon className="w-7 h-7 text-white" />
+   518→                  </motion.div>
+   519→
+   520→                  <h3 className="text-xl font-bold text-gray-900">{product.title}</h3>
+   521→                  <p className="text-sm font-semibold text-[#0076CE] mt-1">{product.subtitle}</p>
+   522→                  <p className="text-sm text-gray-500 mt-3 leading-relaxed">{product.description}</p>
+   523→
+   524→                  <div className="flex items-center gap-1 mt-5 text-sm font-semibold text-[#0076CE] group-hover:gap-2.5 transition-all duration-300">
+   525→                    Подробнее
+   526→                    <ChevronRight className="w-4 h-4" />
+   527→                  </div>
+   528→                </motion.a>
+   529→              </AnimatedSection>
+   530→            );
+   531→          })}
+   532→        </div>
+   533→      </div>
+   534→    </section>
+   535→  );
+   536→}
+   537→
+   538→/* ─────────── STATS BAR ─────────── */
+   539→function StatsSection() {
+   540→  const stats = [
+   541→    { value: 40000, label: "лет опыта", display: "40+" },
+   542→    { value: 180, label: "стран присутствия", display: "180+" },
+   543→    { value: 120000, label: "сотрудников по всему миру", display: "120K+" },
+   544→    { value: 92, label: "млрд $ выручки в 2024", display: "$92B" },
+   545→  ];
+   546→
+   547→  return (
+   548→    <section className="relative py-20 overflow-hidden" aria-label="Статистика Dell">
+   549→      <div className="absolute inset-0 bg-gradient-to-r from-[#004B87] via-[#0076CE] to-[#005BA1]" />
+   550→      <motion.div
+   551→        className="absolute inset-0 opacity-10"
+   552→        style={{
+   553→          backgroundImage: "radial-gradient(circle at 1px 1px, white 1px, transparent 1px)",
+   554→          backgroundSize: "40px 40px",
+   555→        }}
+   556→        initial={{ opacity: 0 }}
+   557→        whileInView={{ opacity: 0.1 }}
+   558→        viewport={{ once: true }}
+   559→        transition={{ duration: 1.5 }}
+   560→      />
+   561→      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+   562→        <div className="grid grid-cols-2 lg:grid-cols-4 gap-10">
+   563→          {stats.map((stat, i) => (
+   564→            <AnimatedSection key={stat.label}>
+   565→              <motion.div variants={fadeUp} custom={i} className="text-center">
+   566→                <div className="text-4xl sm:text-5xl font-extrabold text-white tracking-tight">
+   567→                  {stat.display}
+   568→                </div>
+   569→                <div className="text-sm text-blue-100/80 mt-2 font-medium">{stat.label}</div>
+   570→              </motion.div>
+   571→            </AnimatedSection>
+   572→          ))}
+   573→        </div>
+   574→      </div>
+   575→    </section>
+   576→  );
+   577→}
+   578→
+   579→/* ─────────── WHY DELL ─────────── */
+   580→const features = [
+   581→  {
+   582→    icon: Cpu,
+   583→    title: "Инновации без границ",
+   584→    description:
+   585→      "$3 млрд ежегодно в R&D. AI-чипы нового поколения, дисплеи, опережающие время. Dell не следует трендам — он их создаёт.",
+   586→  },
+   587→  {
+   588→    icon: Headphones,
+   589→    title: "ProSupport 24/7",
+   590→    description:
+   591→      "Персональный инженер на связи круглосуточно. 93% проблем решаются при первом обращении. Ваш бизнес не ждёт — и мы тоже.",
+   592→  },
+   593→  {
+   594→    icon: Leaf,
+   595→    title: "Ответственность перед планетой",
+   596→    description:
+   597→      "55% упаковки из переработанных материалов. Цель — 100% возобновляемая энергия к 2030 году. Технологии, которые берегут мир.",
+   598→  },
+   599→  {
+   600→    icon: Shield,
+   601→    title: "Защита корпоративного уровня",
+   602→    description:
+   603→      "Аппаратное шифрование, биометрия, удалённое стирание. Ваши данные под охраной 24/7 — без исключений.",
+   604→  },
+   605→];
+   606→
+   607→function FeaturesSection() {
+   608→  const ref = useRef(null);
+   609→  const isInView = useInView(ref, { once: true, margin: "-60px" });
+   610→
+   611→  return (
+   612→    <section className="py-24 sm:py-32 bg-white" aria-labelledby="features-heading">
+   613→      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+   614→        <motion.div
+   615→          ref={ref}
+   616→          initial="hidden"
+   617→          animate={isInView ? "visible" : "hidden"}
+   618→          className="text-center mb-16"
+   619→        >
+   620→          <motion.p variants={fadeUp} custom={0} className="text-sm font-semibold text-[#0076CE] uppercase tracking-widest mb-3">
+   621→            Преимущества
+   622→          </motion.p>
+   623→          <motion.h2
+   624→            id="features-heading"
+   625→            variants={fadeUp}
+   626→            custom={1}
+   627→            className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-gray-900 tracking-tight"
+   628→          >
+   629→            Почему мир доверяет Dell
+   630→          </motion.h2>
+   631→          <motion.p variants={fadeUp} custom={2} className="mt-5 text-lg text-gray-500 max-w-2xl mx-auto leading-relaxed">
+   632→            Не просто производитель — стратегический партнёр. Более 40 лет мы строим технологии,
+   633→            которые определяют завтрашний день.
+   634→          </motion.p>
+   635→        </motion.div>
+   636→
+   637→        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8">
+   638→          {features.map((feature, i) => {
+   639→            const Icon = feature.icon;
+   640→            return (
+   641→              <AnimatedSection key={feature.title}>
+   642→                <motion.div variants={scaleIn} custom={i} className="text-center group">
+   643→                  <div className="w-18 h-18 rounded-2xl bg-gradient-to-br from-blue-50 to-blue-100/50 flex items-center justify-center mx-auto mb-6 group-hover:from-[#0076CE] group-hover:to-[#005BA1] transition-all duration-500 group-hover:scale-110 group-hover:shadow-xl group-hover:shadow-blue-600/20 p-4">
+   644→                    <Icon className="w-10 h-10 text-[#0076CE] group-hover:text-white transition-colors duration-500" />
+   645→                  </div>
+   646→                  <h3 className="text-lg font-bold text-gray-900 mb-3">{feature.title}</h3>
+   647→                  <p className="text-sm text-gray-500 leading-relaxed">{feature.description}</p>
+   648→                </motion.div>
+   649→              </AnimatedSection>
+   650→            );
+   651→          })}
+   652→        </div>
+   653→      </div>
+   654→    </section>
+   655→  );
+   656→}
+   657→
+   658→/* ─────────── CTA SECTION ─────────── */
+   659→function CTASection() {
+   660→  return (
+   661→    <section
+   662→      className="relative py-28 sm:py-36 overflow-hidden"
+   663→      aria-labelledby="cta-heading"
+   664→    >
+   665→      {/* Cinematic gradient bg */}
+   666→      <div className="absolute inset-0 bg-gradient-to-br from-[#030a14] via-[#0a1e38] to-[#0d2847]" />
+   667→
+   668→      {/* Animated orbs */}
+   669→      <motion.div
+   670→        className="absolute -top-32 -right-32 w-[500px] h-[500px] bg-[#0076CE]/20 rounded-full"
+   671→        style={{ filter: "blur(120px)" }}
+   672→        initial={{ scale: 0, opacity: 0 }}
+   673→        whileInView={{ scale: 1, opacity: 1 }}
+   674→        viewport={{ once: true }}
+   675→        transition={{ duration: 1.8 }}
+   676→      />
+   677→      <motion.div
+   678→        className="absolute -bottom-32 -left-32 w-[400px] h-[400px] bg-[#00B4D8]/15 rounded-full"
+   679→        style={{ filter: "blur(100px)" }}
+   680→        initial={{ scale: 0, opacity: 0 }}
+   681→        whileInView={{ scale: 1, opacity: 1 }}
+   682→        viewport={{ once: true }}
+   683→        transition={{ duration: 1.8, delay: 0.3 }}
+   684→      />
+   685→
+   686→      <div className="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+   687→        <motion.div
+   688→          initial="hidden"
+   689→          whileInView="visible"
+   690→          viewport={{ once: true, margin: "-80px" }}
+   691→        >
+   692→          <motion.p variants={fadeUp} custom={0} className="text-sm font-semibold text-[#4da8e8] uppercase tracking-widest mb-4">
+   693→            Начните сегодня
+   694→          </motion.p>
+   695→
+   696→          <motion.h2
+   697→            id="cta-heading"
+   698→            variants={fadeUp}
+   699→            custom={1}
+   700→            className="text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-extrabold text-white tracking-tight leading-[1.15]"
+   701→          >
+   702→            Мир не ждёт.<br />
+   703→            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#0076CE] to-[#00B4D8]">
+   704→              Ваш следующий шаг — сейчас.
+   705→            </span>
+   706→          </motion.h2>
+   707→
+   708→          <motion.p variants={fadeUp} custom={2} className="mt-7 text-lg text-gray-400 max-w-2xl mx-auto leading-relaxed">
+   709→            Найдите решение, которое ускорит ваш рост: от ультрапортативного ноутбука для
+   710→            командировок до серверной инфраструктуры для глобальной компании.
+   711→          </motion.p>
+   712→
+   713→          <motion.div variants={fadeUp} custom={3} className="flex flex-col sm:flex-row gap-4 mt-12 justify-center">
+   714→            <CTAButton
+   715→              href={`${DELL_LINK}/shop/np/laptops`}
+   716→              location="cta_section"
+   717→              buttonName="shop_laptops_cta"
+   718→              variant="primary"
+   719→              className="text-base px-9 py-4"
+   720→            >
+   721→              <Monitor className="w-5 h-5" />
+   722→              Ноутбуки и ПК
+   723→              <ArrowRight className="w-5 h-5" />
+   724→            </CTAButton>
+   725→
+   726→            <CTAButton
+   727→              href={`${DELL_LINK}/en-us/shop/workstations/precision-mobile-workstations`}
+   728→              location="cta_section"
+   729→              buttonName="shop_workstations_cta"
+   730→              variant="secondary"
+   731→              className="text-base px-9 py-4"
+   732→            >
+   733→              <Wrench className="w-5 h-5" />
+   734→              Рабочие станции
+   735→              <ArrowRight className="w-5 h-5" />
+   736→            </CTAButton>
+   737→
+   738→            <CTAButton
+   739→              href={`${DELL_LINK}/business`}
+   740→              location="cta_section"
+   741→              buttonName="business_solutions_cta"
+   742→              variant="secondary"
+   743→              className="text-base px-9 py-4"
+   744→            >
+   745→              <Building2 className="w-5 h-5" />
+   746→              Для бизнеса
+   747→              <ArrowRight className="w-5 h-5" />
+   748→            </CTAButton>
+   749→          </motion.div>
+   750→
+   751→          <motion.p variants={fadeUp} custom={4} className="mt-10 text-sm text-gray-500">
+   752→            Бесплатная доставка • Возврат в течение 30 дней • Гарантия производителя
+   753→          </motion.p>
+   754→        </motion.div>
+   755→      </div>
+   756→    </section>
+   757→  );
+   758→}
+   759→
+   760→/* ─────────── FOOTER ─────────── */
+   761→function Footer() {
+   762→  const footerLinks = [
+   763→    {
+   764→      title: "Продукты",
+   765→      links: [
+   766→        { label: "XPS", href: `${DELL_LINK}/shop/np/xps-laptops` },
+   767→        { label: "Precision", href: `${DELL_LINK}/en-us/shop/workstations/precision-mobile-workstations` },
+   768→        { label: "Latitude", href: `${DELL_LINK}/shop/np/latitude-laptops` },
+   769→        { label: "Мониторы", href: `${DELL_LINK}/shop/np/monitors` },
+   770→        { label: "Аксессуары", href: `${DELL_LINK}/shop/np/accessories` },
+   771→      ],
+   772→    },
+   773→    {
+   774→      title: "Решения",
+   775→      links: [
+   776→        { label: "Для бизнеса", href: `${DELL_LINK}/business` },
+   777→        { label: "Для образования", href: `${DELL_LINK}/education` },
+   778→        { label: "ИТ-инфраструктура", href: `${DELL_LINK}/en-us/solutions/infrastructure-solutions` },
+   779→        { label: "Кибербезопасность", href: `${DELL_LINK}/en-us/solutions/cybersecurity-solutions` },
+   780→        { label: "AI и ML", href: `${DELL_LINK}/en-us/solutions/artificial-intelligence-solutions` },
+   781→      ],
+   782→    },
+   783→    {
+   784→      title: "Поддержка",
+   785→      links: [
+   786→        { label: "Сервисный центр", href: `${DELL_LINK}/support/home` },
+   787→        { label: "Драйверы", href: `${DELL_LINK}/support/home/drivers` },
+   788→        { label: "Гарантия", href: `${DELL_LINK}/support/services/warranty` },
+   789→        { label: "Статус заказа", href: `${DELL_LINK}/support/orders` },
+   790→        { label: "Контакты", href: `${DELL_LINK}/contact-us` },
+   791→      ],
+   792→    },
+   793→  ];
+   794→
+   795→  return (
+   796→    <footer className="bg-[#0a0a0a] text-gray-400">
+   797→      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+   798→        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-10">
+   799→          <div className="sm:col-span-2 lg:col-span-1">
+   800→            <a
+   801→              href={DELL_LINK}
+   802→              target="_blank"
+   803→              rel="noopener noreferrer"
+   804→              className="inline-block text-[#0076CE] hover:opacity-80 transition-opacity"
+   805→            >
+   806→              <DellLogo className="h-7 w-auto" />
+   807→            </a>
+   808→            <p className="mt-4 text-sm text-gray-500 leading-relaxed max-w-xs">
+   809→              Dell Technologies — мировой лидер в области ИТ-инфраструктуры, облачных решений и
+   810→              вычислительных систем, определяющий облик цифровой эпохи.
+   811→            </p>
+   812→          </div>
+   813→
+   814→          {footerLinks.map((col) => (
+   815→            <div key={col.title}>
+   816→              <h3 className="text-sm font-semibold text-white uppercase tracking-wider mb-4">
+   817→                {col.title}
+   818→              </h3>
+   819→              <ul className="space-y-2.5">
+   820→                {col.links.map((link) => (
+   821→                  <li key={link.label}>
+   822→                    <a
+   823→                      href={link.href}
+   824→                      target="_blank"
+   825→                      rel="noopener noreferrer"
+   826→                      className="text-sm text-gray-500 hover:text-white transition-colors"
+   827→                    >
+   828→                      {link.label}
+   829→                    </a>
+   830→                  </li>
+   831→                ))}
+   832→              </ul>
+   833→            </div>
+   834→          ))}
+   835→        </div>
+   836→
+   837→        <div className="mt-14 pt-8 border-t border-gray-800/50 flex flex-col sm:flex-row justify-between items-center gap-4">
+   838→          <p className="text-xs text-gray-600">
+   839→            © {new Date().getFullYear()} Dell Technologies. Все права защищены. Данный сайт является
+   840→            информационным и не является официальным ресурсом Dell Inc.
+   841→          </p>
+   842→          <div className="flex gap-6 text-xs text-gray-600 items-center">
+   843→            <a href={`${DELL_LINK}/en-us/privacy`} target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">
+   844→              Конфиденциальность
+   845→            </a>
+   846→            <a href={`${DELL_LINK}/en-us/legal`} target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">
+   847→              Условия
+   848→            </a>
+   849→            <button
+   850→              type="button"
+   851→              onClick={() => {
+   852→                // Dispatch custom event to open cookie settings
+   853→                window.dispatchEvent(new CustomEvent("open-cookie-settings"));
+   854→              }}
+   855→              className="hover:text-white transition-colors cursor-pointer"
+   856→            >
+   857→              Настройки куки
+   858→            </button>
+   859→          </div>
+   860→        </div>
+   861→      </div>
+   862→    </footer>
+   863→  );
+   864→}
+   865→
+   866→/* ─────────── PAGE ─────────── */
+   867→export default function DellLandingPage() {
+   868→  return (
+   869→    <div className="min-h-screen flex flex-col">
+   870→      <Navigation />
+   871→      <main className="flex-1">
+   872→        <HeroSection />
+   873→        <ProductsSection />
+   874→        <StatsSection />
+   875→        <FeaturesSection />
+   876→        <CTASection />
+   877→      </main>
+   878→      <Footer />
+   879→    </div>
+   880→  );
+   881→}
+   882→

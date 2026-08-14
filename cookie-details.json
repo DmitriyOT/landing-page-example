@@ -1,0 +1,47 @@
+[
+  {
+    "url": "https://www.auditzo.com/blog/gdpr-cookie-consent-rules-2025",
+    "name": "GDPR Cookie Consent 2026: Banner & Tracking Risks",
+    "snippet": "This guide explains the practical GDPR cookie consent requirements teams should review in 2026, including Accept and Reject choices, granular consent , dark ... Read more",
+    "host_name": "www.auditzo.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.datagrail.io/blog/data-privacy/cookie-consent-style-guide-best-practices-how-to-design-banners-without-dark-patterns",
+    "name": "Cookie Consent Style Guide & Best Practices",
+    "snippet": "Feb 20, 2026 — Design a compliant cookie consent banner that avoids deceptive design, legal jargon, and pre-checked consent options for clarity.",
+    "host_name": "www.datagrail.io",
+    "rank": 1,
+    "date": "Feb 20, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://arxiv.org/html/2603.21515v1",
+    "name": "Unveiling Evolving Dark Patterns in Cookie Consent Banners",
+    "snippet": "Mar 23, 2026 — This dark pattern , also known as “pay-to-opt-out,” occurs when cookie banners require users to pay a fee to reject third-party cookies and ... Read more",
+    "host_name": "arxiv.org",
+    "rank": 2,
+    "date": "Mar 23, 2026",
+    "favicon": ""
+  },
+  {
+    "url": "https://cookieinformation.com/blog/blog-swedish-dpa-imy-dark-patterns-april-2025",
+    "name": "Swedish DPA targets dark patterns in cookie banners",
+    "snippet": "May 2, 2025 — Sweden's privacy authority has issued formal warnings to major companies over misleading cookie banners that failed to meet legal standards . Read more",
+    "host_name": "cookieinformation.com",
+    "rank": 3,
+    "date": "May 2, 2025",
+    "favicon": ""
+  },
+  {
+    "url": "https://secureprivacy.ai/blog/cookie-banner-dark-patterns-gdpr",
+    "name": "Cookie Banner Dark Patterns: The New Manipulation",
+    "snippet": "May 15, 2026 — France's CNIL fined Google €200 million in September 2025 for a consent design that made cookie rejection harder than acceptance.",
+    "host_name": "secureprivacy.ai",
+    "rank": 4,
+    "date": "May 15, 2026",
+    "favicon": ""
+  }
+]
