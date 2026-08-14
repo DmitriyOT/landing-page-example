@@ -1,9 +1,10 @@
 // Analytics tracking utilities for Dell landing page
+// ID берутся из переменных окружения (GitHub Secrets → env vars при билде)
 
 export const ANALYTICS_CONFIG = {
-  GTM_ID: 'GTM-XXXXXXX',
-  GA4_ID: 'G-XXXXXXXXXX',
-  YM_ID: 'XXXXXXXXX',
+  GTM_ID: process.env.NEXT_PUBLIC_GTM_ID || '',
+  GA4_ID: process.env.NEXT_PUBLIC_GA4_ID || '',
+  YM_ID: process.env.NEXT_PUBLIC_YM_ID || '',
   YM_WEBVISOR: true,
 } as const;
 

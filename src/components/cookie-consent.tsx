@@ -6,9 +6,9 @@ import { X, Settings, Shield, BarChart3, Eye } from "lucide-react";
 import { useCookieConsent, type ConsentState } from "@/hooks/use-cookie-consent";
 import { Button } from "@/components/ui/button";
 
-// Analytics IDs — replace with your actual IDs
-const GTM_ID = "GTM-XXXXXXX";
-const YM_ID = "XXXXXXXXX";
+// Analytics IDs — берутся из переменных окружения при билде (GitHub Secrets)
+const GTM_ID = process.env.NEXT_PUBLIC_GTM_ID || "";
+const YM_ID = process.env.NEXT_PUBLIC_YM_ID || "";
 
 const COOKIE_CATEGORIES = [
   {
