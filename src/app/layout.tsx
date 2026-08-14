@@ -12,12 +12,12 @@ const geistSans = Geist({
 export const metadata: Metadata = {
   title: "Dell Technologies — Ноутбуки, ПК, Серверы и Решения для Бизнеса",
   description:
-    "Откройте мир технологий Dell. Премиальные ноутбуки XPS, игровые системы Alienware, бизнес-решения Latitude, серверы PowerEdge. Бесплатная доставка и поддержка.",
+    "Откройте мир технологий Dell. Премиальные ноутбуки XPS, рабочие станции Precision, бизнес-решения Latitude, серверы PowerEdge. Бесплатная доставка и поддержка.",
   keywords: [
     "Dell",
     "ноутбук",
     "XPS",
-    "Alienware",
+    "Precision",
     "Latitude",
     "сервер",
     "PowerEdge",
@@ -30,7 +30,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Dell Technologies — Технологии будущего уже сегодня",
     description:
-      "Откройте мир технологий Dell. Премиальные ноутбуки, игровые системы, бизнес-решения и серверы.",
+      "Откройте мир технологий Dell. Премиальные ноутбуки, рабочие станции, бизнес-решения и серверы.",
     url: "https://www.dell.com/ru-ru",
     siteName: "Dell Technologies",
     type: "website",
@@ -39,7 +39,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "Dell Technologies — Технологии будущего уже сегодня",
-    description: "Премиальные ноутбуки, игровые системы, бизнес-решения и серверы Dell.",
+    description: "Премиальные ноутбуки, рабочие станции, бизнес-решения и серверы Dell.",
   },
 };
 

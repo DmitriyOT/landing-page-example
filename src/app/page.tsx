@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import Image from "next/image";
 import {
   Monitor,
@@ -13,20 +13,76 @@ import {
   Menu,
   X,
   Laptop,
-  Gamepad2,
   Building2,
   ArrowRight,
   Star,
   Zap,
+  Globe,
+  Wrench,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { motion, useInView, useMotionValue, useTransform, animate } from "framer-motion";
 import { trackCTAClick, type CTAEvent } from "@/lib/analytics";
 
-const DELL_BLUE = "#0076CE";
-const DELL_DARK = "#1D1D1D";
-const DELL_BLUE_DARK = "#004B87";
 const DELL_LINK = "https://www.dell.com/ru-ru";
 
+/* ─── ANIMATION HELPERS ─── */
+const fadeUp = {
+  hidden: { opacity: 0, y: 40 },
+  visible: (i: number) => ({
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.7, delay: i * 0.12, ease: [0.22, 1, 0.36, 1] },
+  }),
+};
+
+const scaleIn = {
+  hidden: { opacity: 0, scale: 0.85 },
+  visible: (i: number) => ({
+    opacity: 1,
+    scale: 1,
+    transition: { duration: 0.6, delay: i * 0.1, ease: [0.22, 1, 0.36, 1] },
+  }),
+};
+
+function AnimatedSection({ children, className = "" }: { children: React.ReactNode; className?: string }) {
+  const ref = useRef(null);
+  const isInView = useInView(ref, { once: true, margin: "-80px" });
+  return (
+    <motion.div
+      ref={ref}
+      initial="hidden"
+      animate={isInView ? "visible" : "hidden"}
+      className={className}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+function AnimatedCounter({ target, suffix = "" }: { target: number; suffix?: string }) {
+  const ref = useRef(null);
+  const isInView = useInView(ref, { once: true });
+  const count = useMotionValue(0);
+  const rounded = useTransform(count, (v) => {
+    if (target >= 1000) return `${Math.round(v / 1000)}K+`;
+    if (suffix === "+") return `${Math.round(v)}+`;
+    if (suffix === "B") return `$${(v / 1).toFixed(0)}B`;
+    return `${Math.round(v)}`;
+  });
+
+  useEffect(() => {
+    if (!isInView) return;
+    const controls = animate(count, target, {
+      duration: 2.2,
+      ease: [0.22, 1, 0.36, 1],
+    });
+    return () => controls.stop();
+  }, [isInView, target, count]);
+
+  return <motion.span ref={ref}>{rounded}</motion.span>;
+}
+
+/* ─── CTA BUTTON ─── */
 function CTAButton({
   href,
   children,
@@ -37,7 +93,7 @@ function CTAButton({
 }: {
   href: string;
   children: React.ReactNode;
-  variant?: "primary" | "secondary" | "outline" | "ghost";
+  variant?: "primary" | "secondary" | "outline";
   location: string;
   buttonName: string;
   className?: string;
@@ -50,14 +106,13 @@ function CTAButton({
     });
   }, [buttonName, location, href]);
 
-  const baseClasses =
-    "inline-flex items-center gap-2 font-semibold transition-all duration-200 rounded-lg text-sm sm:text-base cursor-pointer";
+  const base =
+    "inline-flex items-center gap-2 font-semibold transition-all duration-300 rounded-xl text-sm sm:text-base cursor-pointer";
 
-  const variants = {
-    primary: `${baseClasses} px-6 py-3 bg-[#0076CE] text-white hover:bg-[#004B87] shadow-lg shadow-blue-500/20 hover:shadow-blue-500/40 hover:-translate-y-0.5`,
-    secondary: `${baseClasses} px-6 py-3 bg-white text-[#0076CE] hover:bg-blue-50 border border-[#0076CE]/20 shadow-md hover:shadow-lg hover:-translate-y-0.5`,
-    outline: `${baseClasses} px-6 py-3 bg-transparent text-white border-2 border-white/40 hover:border-white hover:bg-white/10`,
-    ghost: `${baseClasses} px-4 py-2 bg-transparent text-[#0076CE] hover:bg-blue-50`,
+  const v = {
+    primary: `${base} px-7 py-3.5 bg-gradient-to-r from-[#0076CE] to-[#005BA1] text-white shadow-xl shadow-blue-600/25 hover:shadow-blue-600/50 hover:-translate-y-1 hover:scale-[1.02] active:scale-[0.98]`,
+    secondary: `${base} px-7 py-3.5 bg-white text-[#0076CE] hover:bg-blue-50 border border-[#0076CE]/20 shadow-lg hover:shadow-xl hover:-translate-y-1`,
+    outline: `${base} px-7 py-3.5 bg-transparent text-white border-2 border-white/30 hover:border-white/70 hover:bg-white/10 hover:-translate-y-0.5`,
   };
 
   return (
@@ -66,29 +121,18 @@ function CTAButton({
       target="_blank"
       rel="noopener noreferrer"
       onClick={handleClick}
-      className={`${variants[variant]} ${className}`}
+      className={`${v[variant]} ${className}`}
     >
       {children}
     </a>
   );
 }
 
+/* ─── DELL LOGO ─── */
 function DellLogo({ className = "" }: { className?: string }) {
   return (
-    <svg
-      viewBox="0 0 200 40"
-      className={className}
-      aria-label="Dell Technologies"
-      role="img"
-    >
-      <text
-        x="0"
-        y="34"
-        fontFamily="Arial, Helvetica, sans-serif"
-        fontWeight="700"
-        fontSize="40"
-        fill="currentColor"
-      >
+    <svg viewBox="0 0 200 40" className={className} aria-label="Dell Technologies" role="img">
+      <text x="0" y="34" fontFamily="Arial, Helvetica, sans-serif" fontWeight="700" fontSize="40" fill="currentColor">
         DELL
       </text>
     </svg>
@@ -98,7 +142,6 @@ function DellLogo({ className = "" }: { className?: string }) {
 /* ─────────── NAVIGATION ─────────── */
 function Navigation() {
   const [open, setOpen] = useState(false);
-
   const navLinks = [
     { label: "Ноутбуки", href: `${DELL_LINK}/shop/np/laptops` },
     { label: "Решения", href: `${DELL_LINK}/solutions` },
@@ -107,19 +150,23 @@ function Navigation() {
   ];
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-md border-b border-gray-100">
-      <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+    <header className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-xl border-b border-white/20">
+      <motion.nav
+        initial={{ y: -80, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+        className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between"
+      >
         <a
           href={DELL_LINK}
           target="_blank"
           rel="noopener noreferrer"
           className="text-[#0076CE] hover:opacity-80 transition-opacity"
-          aria-label="Dell Technologies — Главная"
+          aria-label="Dell Technologies"
         >
           <DellLogo className="h-8 w-auto" />
         </a>
 
-        {/* Desktop nav */}
         <div className="hidden md:flex items-center gap-8">
           {navLinks.map((link) => (
             <a
@@ -143,7 +190,6 @@ function Navigation() {
           </CTAButton>
         </div>
 
-        {/* Mobile menu toggle */}
         <button
           onClick={() => setOpen(!open)}
           className="md:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors"
@@ -151,11 +197,16 @@ function Navigation() {
         >
           {open ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
         </button>
-      </nav>
+      </motion.nav>
 
-      {/* Mobile nav */}
       {open && (
-        <div className="md:hidden bg-white border-t border-gray-100 shadow-lg">
+        <motion.div
+          initial={{ height: 0, opacity: 0 }}
+          animate={{ height: "auto", opacity: 1 }}
+          exit={{ height: 0, opacity: 0 }}
+          transition={{ duration: 0.3 }}
+          className="md:hidden bg-white border-t border-gray-100 shadow-xl overflow-hidden"
+        >
           <div className="px-4 py-4 space-y-3">
             {navLinks.map((link) => (
               <a
@@ -179,7 +230,7 @@ function Navigation() {
               Купить
             </CTAButton>
           </div>
-        </div>
+        </motion.div>
       )}
     </header>
   );
@@ -188,53 +239,93 @@ function Navigation() {
 /* ─────────── HERO ─────────── */
 function HeroSection() {
   return (
-    <section className="relative pt-16 overflow-hidden bg-gradient-to-br from-[#0a1628] via-[#0d2137] to-[#0a1628] min-h-[90vh] flex items-center">
-      {/* Background pattern */}
-      <div className="absolute inset-0 opacity-10">
-        <div
-          className="absolute inset-0"
+    <section className="relative pt-16 overflow-hidden min-h-screen flex items-center">
+      {/* Animated background grid */}
+      <div className="absolute inset-0 bg-gradient-to-br from-[#050d1a] via-[#0a1e38] to-[#071422]">
+        <motion.div
+          className="absolute inset-0 opacity-[0.07]"
           style={{
             backgroundImage:
-              "radial-gradient(circle at 25% 25%, #0076CE 1px, transparent 1px), radial-gradient(circle at 75% 75%, #0076CE 1px, transparent 1px)",
-            backgroundSize: "60px 60px",
+              "linear-gradient(rgba(0,118,206,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(0,118,206,0.5) 1px, transparent 1px)",
+            backgroundSize: "80px 80px",
           }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 0.07 }}
+          transition={{ duration: 2 }}
         />
       </div>
 
-      {/* Blue glow */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[600px] bg-[#0076CE]/20 rounded-full blur-[120px]" />
+      {/* Animated orbs */}
+      <motion.div
+        className="absolute top-1/4 left-1/4 w-[600px] h-[600px] bg-[#0076CE]/15 rounded-full"
+        initial={{ scale: 0.5, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ duration: 2.5, ease: "easeOut" }}
+        style={{ filter: "blur(120px)" }}
+      />
+      <motion.div
+        className="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] bg-[#00B4D8]/10 rounded-full"
+        initial={{ scale: 0.5, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ duration: 2.5, delay: 0.4, ease: "easeOut" }}
+        style={{ filter: "blur(100px)" }}
+      />
+      {/* Moving accent line */}
+      <motion.div
+        className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#0076CE]/50 to-transparent"
+        initial={{ scaleX: 0 }}
+        animate={{ scaleX: 1 }}
+        transition={{ duration: 1.5, delay: 0.8 }}
+      />
 
-      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-20 lg:py-24">
-        <div className="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
-          {/* Text content */}
+      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 sm:py-24 lg:py-32">
+        <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
+          {/* Text */}
           <div className="text-center lg:text-left">
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#0076CE]/20 border border-[#0076CE]/30 text-[#0076CE] text-sm font-medium mb-6">
+            <motion.div
+              variants={fadeUp}
+              custom={0}
+              className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#0076CE]/15 border border-[#0076CE]/25 text-[#4da8e8] text-sm font-medium mb-8 backdrop-blur-sm"
+            >
               <Zap className="w-4 h-4" />
-              Новые модели 2025 уже в продаже
-            </div>
+              Эра интеллектуальных технологий
+            </motion.div>
 
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white leading-tight tracking-tight">
-              Технологии, которые{" "}
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#0076CE] to-[#00B4D8]">
-                двигают мир
-              </span>{" "}
-              вперёд
-            </h1>
+            <motion.h1
+              variants={fadeUp}
+              custom={1}
+              className="text-4xl sm:text-5xl lg:text-[3.5rem] xl:text-6xl font-extrabold text-white leading-[1.1] tracking-tight"
+            >
+              Мы не просто создаём{" "}
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#0076CE] via-[#00A3E0] to-[#00B4D8]">
+                технологии
+              </span>
+              .<br className="hidden sm:block" />
+              Мы формируем{" "}
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#00B4D8] to-[#0076CE]">
+                будущее
+              </span>
+              .
+            </motion.h1>
 
-            <p className="mt-6 text-lg sm:text-xl text-gray-300 max-w-xl mx-auto lg:mx-0 leading-relaxed">
-              Ноутбуки XPS, игровые системы Alienware, бизнес-решения Latitude и серверы
-              PowerEdge — всё для работы, творчества и бизнеса.
-            </p>
+            <motion.p
+              variants={fadeUp}
+              custom={2}
+              className="mt-7 text-lg sm:text-xl text-gray-400 max-w-xl mx-auto lg:mx-0 leading-relaxed"
+            >
+              Ноутбуки XPS для тех, кто не идёт на компромиссы. Рабочие станции Precision для
+              невообразимых задач. Серверы PowerEdge, на которых держится мир.
+            </motion.p>
 
-            <div className="flex flex-col sm:flex-row gap-4 mt-8 justify-center lg:justify-start">
+            <motion.div variants={fadeUp} custom={3} className="flex flex-col sm:flex-row gap-4 mt-10 justify-center lg:justify-start">
               <CTAButton
                 href={`${DELL_LINK}/shop/np/laptops`}
                 location="hero"
                 buttonName="catalog_hero"
                 variant="primary"
-                className="text-base px-8 py-3.5"
+                className="text-base px-9 py-4"
               >
-                Каталог ноутбуков
+                Открыть каталог
                 <ArrowRight className="w-5 h-5" />
               </CTAButton>
               <CTAButton
@@ -242,14 +333,13 @@ function HeroSection() {
                 location="hero"
                 buttonName="business_hero"
                 variant="outline"
-                className="text-base px-8 py-3.5"
+                className="text-base px-9 py-4"
               >
                 Решения для бизнеса
               </CTAButton>
-            </div>
+            </motion.div>
 
-            {/* Trust indicators */}
-            <div className="flex flex-wrap gap-6 mt-10 justify-center lg:justify-start text-sm text-gray-400">
+            <motion.div variants={fadeUp} custom={4} className="flex flex-wrap gap-6 mt-12 justify-center lg:justify-start text-sm text-gray-500">
               <div className="flex items-center gap-2">
                 <Shield className="w-4 h-4 text-[#0076CE]" />
                 Гарантия до 5 лет
@@ -262,26 +352,52 @@ function HeroSection() {
                 <Headphones className="w-4 h-4 text-[#0076CE]" />
                 24/7 поддержка
               </div>
-            </div>
+            </motion.div>
           </div>
 
           {/* Hero image */}
-          <div className="relative flex justify-center lg:justify-end">
+          <motion.div
+            className="relative flex justify-center lg:justify-end"
+            variants={scaleIn}
+            custom={1}
+          >
             <div className="relative w-full max-w-lg lg:max-w-none">
-              <div className="absolute -inset-4 bg-gradient-to-r from-[#0076CE]/30 to-[#00B4D8]/30 rounded-2xl blur-2xl" />
+              <motion.div
+                className="absolute -inset-6 bg-gradient-to-br from-[#0076CE]/30 via-[#00B4D8]/20 to-transparent rounded-3xl"
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 2, delay: 0.5, ease: "easeOut" }}
+                style={{ filter: "blur(40px)" }}
+              />
               <Image
                 src="/hero-dell.png"
-                alt="Ноутбук Dell XPS — тонкий, мощный, стильный"
+                alt="Ноутбук Dell XPS — воплощение инноваций"
                 width={700}
                 height={400}
                 priority
-                className="relative rounded-xl shadow-2xl w-full h-auto"
+                className="relative rounded-2xl shadow-2xl shadow-blue-900/40 w-full h-auto"
                 sizes="(max-width: 768px) 100vw, 50vw"
               />
             </div>
-          </div>
+          </motion.div>
         </div>
       </div>
+
+      {/* Scroll indicator */}
+      <motion.div
+        className="absolute bottom-8 left-1/2 -translate-x-1/2"
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 2, duration: 0.8 }}
+      >
+        <motion.div
+          animate={{ y: [0, 8, 0] }}
+          transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+          className="w-6 h-10 rounded-full border-2 border-white/20 flex items-start justify-center p-1.5"
+        >
+          <div className="w-1.5 h-1.5 rounded-full bg-white/50" />
+        </motion.div>
+      </motion.div>
     </section>
   );
 }
@@ -293,168 +409,115 @@ const products = [
     title: "XPS Series",
     subtitle: "Премиальные ноутбуки",
     description:
-      "Ультратонкие дисплеи InfinityEdge, процессоры Intel Core Ultra, потрясающий OLED-экран. Идеальны для творчества и работы.",
+      "OLED-дисплей InfinityEdge, Intel Core Ultra, тоньше карандаша — для тех, кто видит мир шире.",
     href: `${DELL_LINK}/shop/np/xps-laptops`,
-    badge: "Хит продаж",
+    badge: "Флагман",
     gradient: "from-blue-500 to-cyan-400",
   },
   {
-    icon: Gamepad2,
-    title: "Alienware",
-    subtitle: "Игровые системы",
+    icon: Wrench,
+    title: "Precision",
+    subtitle: "Рабочие станции",
     description:
-      "Мощнейшие GPU NVIDIA RTX, дисплеи до 480 Гц, продвинутое охлаждение. Создано для побед.",
-    href: `${DELL_LINK}/en-us/shop/gaming-laptops/alienware-laptops`,
-    badge: "Топ gamers",
-    gradient: "from-purple-600 to-pink-500",
+      "До 128 ГБ памяти, NVIDIA RTX Ada Generation, сертификация ISV. Инструмент для невозможных задач.",
+    href: `${DELL_LINK}/en-us/shop/workstations/precision-mobile-workstations`,
+    badge: "Pro",
+    gradient: "from-slate-600 to-slate-400",
   },
   {
     icon: Building2,
     title: "Latitude",
     subtitle: "Бизнес-ноутбуки",
     description:
-      "Безопасность корпоративного уровня, автономность до 22 часов, управление через Dell Technologies Unified Workspace.",
+      "22 часа без подзарядки, TPM 2.0, удалённое управление. Броня для корпоративных данных.",
     href: `${DELL_LINK}/shop/np/latitude-laptops`,
-    badge: "Для бизнеса",
+    badge: "Enterprise",
     gradient: "from-emerald-500 to-teal-400",
   },
   {
     icon: Server,
     title: "PowerEdge",
-    subtitle: "Серверы и ИТ-инфраструктура",
+    subtitle: "Серверы нового поколения",
     description:
-      "Высокопроизводительные серверы для ЦОД, AI-ускорители, масштабируемые решения для любого бизнеса.",
+      "AI-ускорители, масштабируемость до тысячи узлов. Инфраструктура, на которой держится прогресс.",
     href: `${DELL_LINK}/en-us/shop/server-networking/poweredge`,
-    badge: "Enterprise",
+    badge: "Data Center",
     gradient: "from-orange-500 to-amber-400",
   },
 ];
 
 function ProductsSection() {
+  const ref = useRef(null);
+  const isInView = useInView(ref, { once: true, margin: "-60px" });
+
   return (
-    <section className="py-20 sm:py-28 bg-gray-50" aria-labelledby="products-heading">
+    <section className="py-24 sm:py-32 bg-gradient-to-b from-white to-gray-50" aria-labelledby="products-heading">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-14">
-          <h2
+        <motion.div
+          ref={ref}
+          initial="hidden"
+          animate={isInView ? "visible" : "hidden"}
+          className="text-center mb-16"
+        >
+          <motion.p variants={fadeUp} custom={0} className="text-sm font-semibold text-[#0076CE] uppercase tracking-widest mb-3">
+            Линейка продуктов
+          </motion.p>
+          <motion.h2
             id="products-heading"
-            className="text-3xl sm:text-4xl font-bold text-gray-900 tracking-tight"
+            variants={fadeUp}
+            custom={1}
+            className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-gray-900 tracking-tight"
           >
-            Продукты для любых задач
-          </h2>
-          <p className="mt-4 text-lg text-gray-600 max-w-2xl mx-auto">
-            От ультратонких ноутбуков до мощных серверов — Dell создаёт технологии, которые
-            соответствуют вашим амбициям.
-          </p>
-        </div>
+            Технологии, достойные ваших амбиций
+          </motion.h2>
+          <motion.p variants={fadeUp} custom={2} className="mt-5 text-lg text-gray-500 max-w-2xl mx-auto leading-relaxed">
+            От ультратонких ноутбуков до серверных ферм — Dell создаёт инструменты, которые
+            превращают смелые идеи в реальность.
+          </motion.p>
+        </motion.div>
 
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {products.map((product) => {
+          {products.map((product, i) => {
             const Icon = product.icon;
             return (
-              <a
-                key={product.title}
-                href={product.href}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={() =>
-                  trackCTAClick({
-                    buttonName: `product_${product.title.toLowerCase()}`,
-                    buttonLocation: "products_section",
-                    destinationUrl: product.href,
-                  })
-                }
-                className="group relative bg-white rounded-2xl p-6 shadow-sm hover:shadow-xl border border-gray-100 hover:border-gray-200 transition-all duration-300 hover:-translate-y-1 cursor-pointer"
-              >
-                {/* Badge */}
-                <span
-                  className={`inline-block px-3 py-1 rounded-full text-xs font-semibold text-white bg-gradient-to-r ${product.gradient} mb-4`}
+              <AnimatedSection key={product.title}>
+                <motion.a
+                  href={product.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() =>
+                    trackCTAClick({
+                      buttonName: `product_${product.title.toLowerCase()}`,
+                      buttonLocation: "products_section",
+                      destinationUrl: product.href,
+                    })
+                  }
+                  variants={fadeUp}
+                  custom={i}
+                  className="group relative bg-white rounded-2xl p-7 shadow-sm hover:shadow-2xl border border-gray-100 hover:border-gray-200 transition-all duration-500 hover:-translate-y-2 cursor-pointer block"
                 >
-                  {product.badge}
-                </span>
+                  <span
+                    className={`inline-block px-3 py-1 rounded-full text-xs font-bold text-white bg-gradient-to-r ${product.gradient} mb-5 shadow-lg`}
+                  >
+                    {product.badge}
+                  </span>
 
-                {/* Icon */}
-                <div
-                  className={`w-12 h-12 rounded-xl bg-gradient-to-br ${product.gradient} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300`}
-                >
-                  <Icon className="w-6 h-6 text-white" />
-                </div>
+                  <motion.div
+                    className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${product.gradient} flex items-center justify-center mb-5 group-hover:scale-110 group-hover:rotate-3 transition-all duration-500 shadow-lg`}
+                  >
+                    <Icon className="w-7 h-7 text-white" />
+                  </motion.div>
 
-                <h3 className="text-xl font-bold text-gray-900">{product.title}</h3>
-                <p className="text-sm font-medium text-[#0076CE] mt-1">{product.subtitle}</p>
-                <p className="text-sm text-gray-600 mt-3 leading-relaxed">
-                  {product.description}
-                </p>
+                  <h3 className="text-xl font-bold text-gray-900">{product.title}</h3>
+                  <p className="text-sm font-semibold text-[#0076CE] mt-1">{product.subtitle}</p>
+                  <p className="text-sm text-gray-500 mt-3 leading-relaxed">{product.description}</p>
 
-                <div className="flex items-center gap-1 mt-4 text-sm font-semibold text-[#0076CE] group-hover:gap-2 transition-all">
-                  Подробнее
-                  <ChevronRight className="w-4 h-4" />
-                </div>
-              </a>
-            );
-          })}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-/* ─────────── WHY DELL ─────────── */
-const features = [
-  {
-    icon: Cpu,
-    title: "Инновации в каждом продукте",
-    description:
-      "Технологии AI, процессоры последнего поколения, передовые дисплеи. Dell инвестирует $3 млрд ежегодно в R&D.",
-  },
-  {
-    icon: Headphones,
-    title: "ProSupport 24/7",
-    description:
-      "Персональный инженер на связи круглосуточно. Решение 93% проблем при первом обращении.",
-  },
-  {
-    icon: Leaf,
-    title: "Экологичность",
-    description:
-      "55% упаковки из переработанных материалов. Цель — 100% возобновляемая энергия к 2030 году.",
-  },
-  {
-    icon: Shield,
-    title: "Безопасность данных",
-    description:
-      "Шифрование на аппаратном уровне, биометрия, удалённое стирание. Защита корпоративного класса.",
-  },
-];
-
-function FeaturesSection() {
-  return (
-    <section className="py-20 sm:py-28 bg-white" aria-labelledby="features-heading">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-14">
-          <h2
-            id="features-heading"
-            className="text-3xl sm:text-4xl font-bold text-gray-900 tracking-tight"
-          >
-            Почему выбирают Dell
-          </h2>
-          <p className="mt-4 text-lg text-gray-600 max-w-2xl mx-auto">
-            Более 40 лет опыта, 180+ стран присутствия и доверие миллионов клиентов по всему миру.
-          </p>
-        </div>
-
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8">
-          {features.map((feature) => {
-            const Icon = feature.icon;
-            return (
-              <div key={feature.title} className="text-center group">
-                <div className="w-16 h-16 rounded-2xl bg-blue-50 flex items-center justify-center mx-auto mb-5 group-hover:bg-[#0076CE] group-hover:scale-110 transition-all duration-300">
-                  <Icon className="w-8 h-8 text-[#0076CE] group-hover:text-white transition-colors duration-300" />
-                </div>
-                <h3 className="text-lg font-bold text-gray-900 mb-3">{feature.title}</h3>
-                <p className="text-sm text-gray-600 leading-relaxed">
-                  {feature.description}
-                </p>
-              </div>
+                  <div className="flex items-center gap-1 mt-5 text-sm font-semibold text-[#0076CE] group-hover:gap-2.5 transition-all duration-300">
+                    Подробнее
+                    <ChevronRight className="w-4 h-4" />
+                  </div>
+                </motion.a>
+              </AnimatedSection>
             );
           })}
         </div>
@@ -466,22 +529,117 @@ function FeaturesSection() {
 /* ─────────── STATS BAR ─────────── */
 function StatsSection() {
   const stats = [
-    { value: "40+", label: "лет на рынке" },
-    { value: "180+", label: "стран присутствия" },
-    { value: "120K+", label: "сотрудников" },
-    { value: "$92B", label: "выручка в 2024" },
+    { value: 40000, label: "лет опыта", display: "40+" },
+    { value: 180, label: "стран присутствия", display: "180+" },
+    { value: 120000, label: "сотрудников по всему миру", display: "120K+" },
+    { value: 92, label: "млрд $ выручки в 2024", display: "$92B" },
   ];
 
   return (
-    <section className="py-16 bg-[#0076CE]" aria-label="Статистика Dell">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
-          {stats.map((stat) => (
-            <div key={stat.label} className="text-center">
-              <div className="text-3xl sm:text-4xl font-bold text-white">{stat.value}</div>
-              <div className="text-sm text-blue-100 mt-1">{stat.label}</div>
-            </div>
+    <section className="relative py-20 overflow-hidden" aria-label="Статистика Dell">
+      <div className="absolute inset-0 bg-gradient-to-r from-[#004B87] via-[#0076CE] to-[#005BA1]" />
+      <motion.div
+        className="absolute inset-0 opacity-10"
+        style={{
+          backgroundImage: "radial-gradient(circle at 1px 1px, white 1px, transparent 1px)",
+          backgroundSize: "40px 40px",
+        }}
+        initial={{ opacity: 0 }}
+        whileInView={{ opacity: 0.1 }}
+        viewport={{ once: true }}
+        transition={{ duration: 1.5 }}
+      />
+      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-10">
+          {stats.map((stat, i) => (
+            <AnimatedSection key={stat.label}>
+              <motion.div variants={fadeUp} custom={i} className="text-center">
+                <div className="text-4xl sm:text-5xl font-extrabold text-white tracking-tight">
+                  {stat.display}
+                </div>
+                <div className="text-sm text-blue-100/80 mt-2 font-medium">{stat.label}</div>
+              </motion.div>
+            </AnimatedSection>
           ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ─────────── WHY DELL ─────────── */
+const features = [
+  {
+    icon: Cpu,
+    title: "Инновации без границ",
+    description:
+      "$3 млрд ежегодно в R&D. AI-чипы нового поколения, дисплеи, опережающие время. Dell не следует трендам — он их создаёт.",
+  },
+  {
+    icon: Headphones,
+    title: "ProSupport 24/7",
+    description:
+      "Персональный инженер на связи круглосуточно. 93% проблем решаются при первом обращении. Ваш бизнес не ждёт — и мы тоже.",
+  },
+  {
+    icon: Leaf,
+    title: "Ответственность перед планетой",
+    description:
+      "55% упаковки из переработанных материалов. Цель — 100% возобновляемая энергия к 2030 году. Технологии, которые берегут мир.",
+  },
+  {
+    icon: Shield,
+    title: "Защита корпоративного уровня",
+    description:
+      "Аппаратное шифрование, биометрия, удалённое стирание. Ваши данные под охраной 24/7 — без исключений.",
+  },
+];
+
+function FeaturesSection() {
+  const ref = useRef(null);
+  const isInView = useInView(ref, { once: true, margin: "-60px" });
+
+  return (
+    <section className="py-24 sm:py-32 bg-white" aria-labelledby="features-heading">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <motion.div
+          ref={ref}
+          initial="hidden"
+          animate={isInView ? "visible" : "hidden"}
+          className="text-center mb-16"
+        >
+          <motion.p variants={fadeUp} custom={0} className="text-sm font-semibold text-[#0076CE] uppercase tracking-widest mb-3">
+            Преимущества
+          </motion.p>
+          <motion.h2
+            id="features-heading"
+            variants={fadeUp}
+            custom={1}
+            className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-gray-900 tracking-tight"
+          >
+            Почему мир доверяет Dell
+          </motion.h2>
+          <motion.p variants={fadeUp} custom={2} className="mt-5 text-lg text-gray-500 max-w-2xl mx-auto leading-relaxed">
+            Не просто производитель — стратегический партнёр. Более 40 лет мы строим технологии,
+            которые определяют завтрашний день.
+          </motion.p>
+        </motion.div>
+
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8">
+          {features.map((feature, i) => {
+            const Icon = feature.icon;
+            return (
+              <AnimatedSection key={feature.title}>
+                <motion.div variants={scaleIn} custom={i} className="text-center group">
+                  <div className="w-18 h-18 rounded-2xl bg-gradient-to-br from-blue-50 to-blue-100/50 flex items-center justify-center mx-auto mb-6 group-hover:from-[#0076CE] group-hover:to-[#005BA1] transition-all duration-500 group-hover:scale-110 group-hover:shadow-xl group-hover:shadow-blue-600/20 p-4">
+                    <Icon className="w-10 h-10 text-[#0076CE] group-hover:text-white transition-colors duration-500" />
+                  </div>
+                  <h3 className="text-lg font-bold text-gray-900 mb-3">{feature.title}</h3>
+                  <p className="text-sm text-gray-500 leading-relaxed">{feature.description}</p>
+                </motion.div>
+              </AnimatedSection>
+            );
+          })}
         </div>
       </div>
     </section>
@@ -492,66 +650,99 @@ function StatsSection() {
 function CTASection() {
   return (
     <section
-      className="relative py-20 sm:py-28 bg-gradient-to-br from-[#0a1628] via-[#0d2137] to-[#1a3a5c] overflow-hidden"
+      className="relative py-28 sm:py-36 overflow-hidden"
       aria-labelledby="cta-heading"
     >
-      {/* Background effects */}
-      <div className="absolute top-0 right-0 w-96 h-96 bg-[#0076CE]/20 rounded-full blur-[100px]" />
-      <div className="absolute bottom-0 left-0 w-72 h-72 bg-[#00B4D8]/15 rounded-full blur-[80px]" />
+      {/* Cinematic gradient bg */}
+      <div className="absolute inset-0 bg-gradient-to-br from-[#030a14] via-[#0a1e38] to-[#0d2847]" />
+
+      {/* Animated orbs */}
+      <motion.div
+        className="absolute -top-32 -right-32 w-[500px] h-[500px] bg-[#0076CE]/20 rounded-full"
+        style={{ filter: "blur(120px)" }}
+        initial={{ scale: 0, opacity: 0 }}
+        whileInView={{ scale: 1, opacity: 1 }}
+        viewport={{ once: true }}
+        transition={{ duration: 1.8 }}
+      />
+      <motion.div
+        className="absolute -bottom-32 -left-32 w-[400px] h-[400px] bg-[#00B4D8]/15 rounded-full"
+        style={{ filter: "blur(100px)" }}
+        initial={{ scale: 0, opacity: 0 }}
+        whileInView={{ scale: 1, opacity: 1 }}
+        viewport={{ once: true }}
+        transition={{ duration: 1.8, delay: 0.3 }}
+      />
 
       <div className="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-        <h2
-          id="cta-heading"
-          className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white tracking-tight"
+        <motion.div
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: "-80px" }}
         >
-          Готовы сделать шаг в будущее?
-        </h2>
-        <p className="mt-6 text-lg text-gray-300 max-w-2xl mx-auto leading-relaxed">
-          Найдите идеальное решение для себя: от ультрапортативного ноутбука для путешествий до
-          мощной рабочей станции для профессионалов.
-        </p>
+          <motion.p variants={fadeUp} custom={0} className="text-sm font-semibold text-[#4da8e8] uppercase tracking-widest mb-4">
+            Начните сегодня
+          </motion.p>
 
-        <div className="flex flex-col sm:flex-row gap-4 mt-10 justify-center">
-          <CTAButton
-            href={`${DELL_LINK}/shop/np/laptops`}
-            location="cta_section"
-            buttonName="shop_laptops_cta"
-            variant="primary"
-            className="text-base px-8 py-4"
+          <motion.h2
+            id="cta-heading"
+            variants={fadeUp}
+            custom={1}
+            className="text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-extrabold text-white tracking-tight leading-[1.15]"
           >
-            <Monitor className="w-5 h-5" />
-            Ноутбуки и ПК
-            <ArrowRight className="w-5 h-5" />
-          </CTAButton>
+            Мир не ждёт.<br />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#0076CE] to-[#00B4D8]">
+              Ваш следующий шаг — сейчас.
+            </span>
+          </motion.h2>
 
-          <CTAButton
-            href={`${DELL_LINK}/en-us/shop/gaming-laptops/alienware-laptops`}
-            location="cta_section"
-            buttonName="shop_gaming_cta"
-            variant="secondary"
-            className="text-base px-8 py-4"
-          >
-            <Gamepad2 className="w-5 h-5" />
-            Игровые системы
-            <ArrowRight className="w-5 h-5" />
-          </CTAButton>
+          <motion.p variants={fadeUp} custom={2} className="mt-7 text-lg text-gray-400 max-w-2xl mx-auto leading-relaxed">
+            Найдите решение, которое ускорит ваш рост: от ультрапортативного ноутбука для
+            командировок до серверной инфраструктуры для глобальной компании.
+          </motion.p>
 
-          <CTAButton
-            href={`${DELL_LINK}/business`}
-            location="cta_section"
-            buttonName="business_solutions_cta"
-            variant="secondary"
-            className="text-base px-8 py-4"
-          >
-            <Building2 className="w-5 h-5" />
-            Для бизнеса
-            <ArrowRight className="w-5 h-5" />
-          </CTAButton>
-        </div>
+          <motion.div variants={fadeUp} custom={3} className="flex flex-col sm:flex-row gap-4 mt-12 justify-center">
+            <CTAButton
+              href={`${DELL_LINK}/shop/np/laptops`}
+              location="cta_section"
+              buttonName="shop_laptops_cta"
+              variant="primary"
+              className="text-base px-9 py-4"
+            >
+              <Monitor className="w-5 h-5" />
+              Ноутбуки и ПК
+              <ArrowRight className="w-5 h-5" />
+            </CTAButton>
 
-        <p className="mt-8 text-sm text-gray-400">
-          Бесплатная доставка • Возврат в течение 30 дней • Гарантия производителя
-        </p>
+            <CTAButton
+              href={`${DELL_LINK}/en-us/shop/workstations/precision-mobile-workstations`}
+              location="cta_section"
+              buttonName="shop_workstations_cta"
+              variant="secondary"
+              className="text-base px-9 py-4"
+            >
+              <Wrench className="w-5 h-5" />
+              Рабочие станции
+              <ArrowRight className="w-5 h-5" />
+            </CTAButton>
+
+            <CTAButton
+              href={`${DELL_LINK}/business`}
+              location="cta_section"
+              buttonName="business_solutions_cta"
+              variant="secondary"
+              className="text-base px-9 py-4"
+            >
+              <Building2 className="w-5 h-5" />
+              Для бизнеса
+              <ArrowRight className="w-5 h-5" />
+            </CTAButton>
+          </motion.div>
+
+          <motion.p variants={fadeUp} custom={4} className="mt-10 text-sm text-gray-500">
+            Бесплатная доставка • Возврат в течение 30 дней • Гарантия производителя
+          </motion.p>
+        </motion.div>
       </div>
     </section>
   );
@@ -564,7 +755,7 @@ function Footer() {
       title: "Продукты",
       links: [
         { label: "XPS", href: `${DELL_LINK}/shop/np/xps-laptops` },
-        { label: "Alienware", href: `${DELL_LINK}/en-us/shop/gaming-laptops/alienware-laptops` },
+        { label: "Precision", href: `${DELL_LINK}/en-us/shop/workstations/precision-mobile-workstations` },
         { label: "Latitude", href: `${DELL_LINK}/shop/np/latitude-laptops` },
         { label: "Мониторы", href: `${DELL_LINK}/shop/np/monitors` },
         { label: "Аксессуары", href: `${DELL_LINK}/shop/np/accessories` },
@@ -593,10 +784,9 @@ function Footer() {
   ];
 
   return (
-    <footer className="bg-[#1D1D1D] text-gray-300">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14">
+    <footer className="bg-[#0a0a0a] text-gray-400">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-10">
-          {/* Brand column */}
           <div className="sm:col-span-2 lg:col-span-1">
             <a
               href={DELL_LINK}
@@ -606,13 +796,12 @@ function Footer() {
             >
               <DellLogo className="h-7 w-auto" />
             </a>
-            <p className="mt-4 text-sm text-gray-400 leading-relaxed max-w-xs">
+            <p className="mt-4 text-sm text-gray-500 leading-relaxed max-w-xs">
               Dell Technologies — мировой лидер в области ИТ-инфраструктуры, облачных решений и
-              персональных компьютеров.
+              вычислительных систем, определяющий облик цифровой эпохи.
             </p>
           </div>
 
-          {/* Link columns */}
           {footerLinks.map((col) => (
             <div key={col.title}>
               <h3 className="text-sm font-semibold text-white uppercase tracking-wider mb-4">
@@ -625,7 +814,7 @@ function Footer() {
                       href={link.href}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-sm text-gray-400 hover:text-white transition-colors"
+                      className="text-sm text-gray-500 hover:text-white transition-colors"
                     >
                       {link.label}
                     </a>
@@ -636,27 +825,16 @@ function Footer() {
           ))}
         </div>
 
-        {/* Bottom bar */}
-        <div className="mt-12 pt-8 border-t border-gray-800 flex flex-col sm:flex-row justify-between items-center gap-4">
-          <p className="text-xs text-gray-500">
+        <div className="mt-14 pt-8 border-t border-gray-800/50 flex flex-col sm:flex-row justify-between items-center gap-4">
+          <p className="text-xs text-gray-600">
             © {new Date().getFullYear()} Dell Technologies. Все права защищены. Данный сайт является
             информационным и не является официальным ресурсом Dell Inc.
           </p>
-          <div className="flex gap-6 text-xs text-gray-500">
-            <a
-              href={`${DELL_LINK}/en-us/privacy`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:text-white transition-colors"
-            >
+          <div className="flex gap-6 text-xs text-gray-600">
+            <a href={`${DELL_LINK}/en-us/privacy`} target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">
               Конфиденциальность
             </a>
-            <a
-              href={`${DELL_LINK}/en-us/legal`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:text-white transition-colors"
-            >
+            <a href={`${DELL_LINK}/en-us/legal`} target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">
               Условия
             </a>
           </div>
