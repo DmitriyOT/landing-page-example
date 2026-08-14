@@ -1,0 +1,22 @@
+{
+  "ci": {
+    "assert": {
+      "assertions": {
+        "resourceSizes": [
+          {
+            "resourceType": "total",
+            "budget": 500
+          },
+          {
+            "resourceType": "image",
+            "budget": 300
+          },
+          {
+            "resourceType": "script",
+            "budget": 200
+          }
+        ]
+      }
+    }
+  }
+}
