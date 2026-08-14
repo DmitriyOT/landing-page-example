@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import { setActiveIds } from "@/lib/analytics";
 
 export interface ConsentState {
   necessary: true; // always true, cannot be disabled
@@ -120,6 +121,12 @@ function removeAnalyticsScripts() {
 function applyConsent(consent: ConsentState, gtmId: string, ymId: string) {
   // Always clean up first
   removeAnalyticsScripts();
+
+  // Сохраняем активные ID для trackCTAClick / ymReachGoal
+  setActiveIds(
+    consent.googleAnalytics ? gtmId : null,
+    consent.yandexMetrica ? ymId : null,
+  );
 
   if (consent.googleAnalytics && gtmId) {
     injectGTM(gtmId);
